@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: app
+    build: 
+      context: ./app
+      dockerfile: Dockerfile.dev
+    depends_on:
+      - db
+      # - redis
+    volumes:
+      - ./app/src:/app
+      - static:/app/static
+      - media:/app/media
+    ports:
+      - 8000:8000
+    networks:
+      - main
+
+  nginx:
+    container_name: nginx
+    build: ./nginx
+    depends_on:
+      - app
+    volumes:
+      - ./nginx/etc/conf.d:/etc/nginx/conf.d
+      - static:/app/static
+      - media:/app/media
+    ports:
+      - 80:80
+    networks:
+      - main
+
+  db:
+    container_name: db
+    image: postgres:14.0-alpine
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file: postgres/.env
+    networks:
+      - main
+
+  web:
+    container_name: web
+    build: 
+      context: ./web
+      dockerfile: Dockerfile.dev
+    depends_on:
+      - app
+      - db
+    volumes:
+      - ./web/src:/app
+      - /app/node_modules
+    ports:
+      - 8080:8080
+    networks:
+      - main
+
+networks:
+  main:
+    driver: bridge
+
+volumes:
+  postgres_data: {}
+  static: {}
+  media: {}

@@ -1,0 +1,36 @@
+FROM python:3.11-slim-bullseye
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+RUN apt-get update && apt-get install -y \
+    sudo \
+    supervisor \
+    libpq-dev \
+    && apt-get clean
+
+COPY ./etc/supervisord.conf /etc/supervisord.conf
+COPY ./etc/supervisor.d /etc/supervisor.d
+
+WORKDIR /app
+
+# RUN mkdir -p /app/static
+# RUN mkdir -p /app/media
+
+COPY ./src/pyproject.toml .
+
+RUN pip install poetry
+
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-interaction
+
+# COPY ./entrypoint.sh .
+# RUN chmod +x /app/entrypoint.sh
+
+COPY ./src  .
+
+EXPOSE 8000
+
+# CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--reload"]
+# CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["sh", "-c", "/usr/bin/supervisord -c /etc/supervisord.conf"]
